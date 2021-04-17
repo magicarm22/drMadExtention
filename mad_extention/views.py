@@ -1,4 +1,6 @@
+import base64
 import datetime
+import jwt
 
 import requests
 from django.http import Http404
@@ -13,6 +15,8 @@ from mad_extention.models import User
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from mad_extention.conf import settings
+
 
 class UserInformation(APIView):
 
@@ -24,7 +28,7 @@ class UserInformation(APIView):
 
     def getUsernameById(self, userId):
         headers = {
-            'Client-ID': 'j5u27nabr614wgxn8bvsaaz8rpmbwd'
+            'Client-ID': settings.DRMAD_CLIENT_ID
         }
         response = requests.get('https://api.twitch.tv/kraken/users/' + str(userId), headers=headers)
         content = response.content
@@ -32,6 +36,12 @@ class UserInformation(APIView):
 
     def get(self, request, format=None):
         import logging
+        # print(request.META.get('HTTP_AUTHORIZATION', ''))
+        token = request.META.get('HTTP_AUTHORIZATION', '')[7:]
+        print(token)
+        my_secret = base64.b64decode(settings.DRMAD_SECRET)
+        print(my_secret)
+        print(jwt.decode(token, my_secret, algorithms=['HS256']))
         logger = logging.getLogger("mylogger")
         logger.info("Whatever to log")
         userId = request.query_params.get('userId', None)

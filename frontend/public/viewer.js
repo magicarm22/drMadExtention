@@ -75,6 +75,7 @@ twitch.onContext(function (context) {
 twitch.onAuthorized(function (auth) {
   // save our credentials
   token = auth.token;
+  console.log(token)
   clientId = auth.clientId;
   tuid = auth.userId;
 
@@ -87,10 +88,10 @@ twitch.onAuthorized(function (auth) {
   setAuth(utilsRequests, token);
   console.log(token);
   // $.ajax(requests.get);
-  utilsRequests.params = {
-    "clientId": clientId,
-    "userId": tuid
-  };
+  // utilsRequests.params = {
+  //   "clientId": clientId,
+  //   "userId": tuid
+  // };
   axios(utilsRequests).then(res => console.log(res))
 });
 
