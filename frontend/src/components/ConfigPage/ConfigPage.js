@@ -1,5 +1,6 @@
 import React from 'react'
 import Authentication from '../Authentication/Authentication'
+import ConfigContainer from './ConfigContainer/ConfigContainer'
 
 import './Config.css'
 
@@ -13,7 +14,7 @@ export default class ConfigPage extends React.Component{
         this.state={
             finishedLoading:false,
             theme:'light',
-            checked:'cat'
+            commands:[]
         }
     }
 
@@ -45,36 +46,30 @@ export default class ConfigPage extends React.Component{
             })
 
             this.twitch.configuration.onChanged(()=>{
-                let config = this.twitch.configuration.broadcaster
+                let config = this.twitch.configuration.broadcaster ? this.twitch.configuration.broadcaster.content : []
+                try{
+                    config = JSON.parse(config)
+                }catch(e){
+                    config = []
+                }
+
                 this.setState(()=>{
                     return{
-                        checked: config ? config.content : 'cat'
+                        commands:config
                     }
                 })
             })
         }
     }
 
-    handleRadioButtonChange(e){
-        let checked = e.target.value
-        this.setState(()=>{
-            return {
-                checked
+    saveConfig(commands){
+        this.twitch.configuration.set('broadcaster', '1.0', JSON.stringify(commands))
+
+        this.setState(prevState=>{
+            return{
+                commands
             }
         })
-    }
-
-    saveConfig(e){
-        e.preventDefault()
-        this.twitch.configuration.set('broadcaster','', this.state.checked)
-        console.log(this.Authentication.state.token)
-        this.Authentication.makeCall('https://localhost:8081/api/randomfact')
-            .then(response=>{
-                if(response.status!=200){
-                    this.twitch.rig.log('Error updating configuration.')
-                }
-            })
-            .catch(this.twitch.rig.log('Error updating configuration.'))
     }
 
     render(){
@@ -82,20 +77,7 @@ export default class ConfigPage extends React.Component{
             return(
                 <div className="Config">
                     <div className={this.state.theme==='light' ? 'Config-light' : 'Config-dark'}>
-                        <form onSubmit={(e)=>this.saveConfig(e)}>
-                            <fieldset>
-                                <legend>Select an animal</legend>
-                                <div>
-                                    <input type="radio" name="animal" value="cat" id="cat" checked={this.state.checked === 'cat'} onChange={e=>this.handleRadioButtonChange(e)} /> 
-                                    <label htmlFor="cat">Cat</label>
-                                </div>
-                                <div>
-                                    <input type="radio" name="animal" value="dog" id="dog" checked={this.state.checked === 'dog'} onChange={e=>this.handleRadioButtonChange(e)} />
-                                    <label htmlFor="dog">Dog</label>
-                                </div>
-                            </fieldset>
-                            <input type="submit" value="Save" />
-                        </form>
+                        <ConfigContainer commands={this.state.commands} saveConfig={(commands)=>this.saveConfig(commands)}/>
                     </div>
                 </div>
             )

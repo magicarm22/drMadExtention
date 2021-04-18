@@ -80,6 +80,7 @@ export default class Authentication{
         return new Promise((resolve, reject)=>{
             if(this.isAuthenticated()){
                 let headers={
+                    'Content-Type':'application/json',
                     'Authorization': `Bearer ${this.state.token}`
                 }
     
