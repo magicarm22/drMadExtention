@@ -1,5 +1,7 @@
 import base64
 import datetime
+import json
+
 import jwt
 
 import requests
@@ -18,39 +20,63 @@ from rest_framework.views import APIView
 from mad_extention.conf import settings
 
 
+def verifyAndDecode(token):
+    try:
+        my_secret = base64.b64decode(settings.DRMAD_SECRET)
+        return jwt.decode(token, my_secret, algorithms=['HS256'])
+    except Exception as e:
+        print(e)
+        return None
+
+
 class UserInformation(APIView):
 
     def get_user(self, name):
-        user = User.objects.filter(nickname=name)
-        if len(user) == 0:
-            return User.objects.create(nickname=name, lastmessage=datetime.datetime.now())
+        if name is None:
+            return None
+        try:
+            user = User.objects.get(nickname=name)
+        except User.DoesNotExist:
+            user = User.objects.create(nickname=name, lastmessage=datetime.datetime.now())
         return user
 
-    def getUsernameById(self, userId):
+    def getUsernameById(self, userId, token):
         headers = {
-            'Client-ID': settings.DRMAD_CLIENT_ID
+            'Authorization': token,
+            "Client-Id": settings.DRMAD_CLIENT_ID
         }
-        response = requests.get('https://api.twitch.tv/kraken/users/' + str(userId), headers=headers)
-        content = response.content
+        params = {
+            "id": str(userId)
+        }
+        response = requests.get('https://api.twitch.tv/helix/users', params=params, headers=headers)
+        content = json.loads(response.content)
         print(content)
+        return content['data'][0]['login']
 
     def get(self, request, format=None):
         import logging
         # print(request.META.get('HTTP_AUTHORIZATION', ''))
-        token = request.META.get('HTTP_AUTHORIZATION', '')[7:]
-        print(token)
-        my_secret = base64.b64decode(settings.DRMAD_SECRET)
-        print(my_secret)
-        print(jwt.decode(token, my_secret, algorithms=['HS256']))
+        token = request.META.get('HTTP_AUTHORIZATION', '')[len("Bearer "):]
+        payload = verifyAndDecode(token)
+        print(payload)
         logger = logging.getLogger("mylogger")
         logger.info("Whatever to log")
-        userId = request.query_params.get('userId', None)
+        userId = payload['user_id']
         print(userId)
-
+        token = self.getAuthToken()
         # logger.info(request)
-        username = self.getUsernameById(userId)
+        username = self.getUsernameById(userId, token)
         user = self.get_user(username)
-        print(user)
+        print(user.nickname)
+        userInformation = {
+            'nickname': str(user.nickname),
+            'countRaids': str(user.countraids),
+            'countCerts': str(user.countcert),
+            'pills': str(user.pills),
+            'pa': str(user.pa),
+            'pz': str(user.pz),
+            'py': str(user.py)
+        }
         #     # health = self.getCurrentHealth(userId)
         #     # if health == 0.0 and not self.db.isHealthZero(ctx.author.name):
         #     #     self.db.addEnergy(ctx.author.name, -3)
@@ -78,7 +104,10 @@ class UserInformation(APIView):
         #                    f'| ПЗ: {pz}, ПА: {pa}, ПУ: {py} '
         #                    f'| Количество справок: {certs} '
         #                    f'| Время, проведенное на стриме: {strStreamTime} |')
-        return Response("#123456")
+        return Response(userInformation)
+
+    def getAuthToken(self):
+        return "Bearer " + str(settings.DRMAD_OAUTH_TOKEN)
 
 
 class Utils(APIView):
