@@ -1,0 +1,43 @@
+.background {
+    background-image: url("../../img/background.png");
+    height: 100%;
+}
+
+.visible-disabled {
+    opacity: 0;
+
+}
+.visible-enabled {
+    animation-duration: 0.2s;
+    -webkit-animation-name: opacityTo100;
+          animation-name: opacityTo100;
+}
+
+.main_window {
+    width: 100%;
+    height: 100%;
+    margin-left: 20%;
+}
+
+@-webkit-keyframes opacityTo100 {
+  0% {
+    opacity: 0.2;
+  }
+  100% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes opacityTo100 {
+  0% {
+    opacity: 0.2;
+  }
+  100% {
+    opacity: 0.9;
+  }
+}
+
+.init {
+  display: block;
+  opacity: 0.2;
+}

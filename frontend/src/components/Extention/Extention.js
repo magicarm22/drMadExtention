@@ -1,16 +1,9 @@
 import React from 'react'
 import Authentication from '../Authentication/Authentication'
-import CommandListContainer from './CommandListContainer/CommandListContainer'
 
-import './App.css'
-import Extention from "../Extention/Extention";
-import axios from 'axios';
-import configData from "../../configFile.json";
+import './Extention.css'
 
 export default class App extends React.Component{
-
-
-
     constructor(props){
         super(props)
         this.Authentication = new Authentication()
@@ -21,9 +14,7 @@ export default class App extends React.Component{
         this.state={
             finishedLoading:false,
             theme:'light',
-            showComponent: false
         }
-        this.clickShowExtention = this.clickShowExtention.bind(this);
     }
 
     queryParamParse(){
@@ -49,8 +40,6 @@ export default class App extends React.Component{
         if(this.twitch){
             this.twitch.onAuthorized((auth)=>{
                 this.Authentication.setToken(auth.token, auth.userId)
-                console.log(auth.token)
-                axios.defaults.headers.common['Authorization'] = 'Bearer ' + auth.token
                 if(!this.state.finishedLoading){
                     this.setState(()=>{
                         return {finishedLoading:true}
@@ -88,16 +77,18 @@ export default class App extends React.Component{
     render(){
         if(this.state.finishedLoading){
             return (
-                <div className="full_extention">
-                    <div className="mini_button">
-                        <button onClick={this.clickShowExtention} className="info_button">
-                            <span style={{color: 'white'}}>Info</span>
-                        </button>
+                <div className="main_window background">
+                    <div className="extention">
+                        <h2>Hello, World!</h2>
+                        <p>Would you care to cycle a color?</p>
+                        <div>
+                            <input type="button" id="cycle" disabled="disabled" value="Yes, I would" />
+                        </div>
+                        <div style={{float: 'left', position: 'relative', left: '50%'}}>
+                            <div id="color" style={{borderRadius: '50px', transition: 'background-color 0.5s ease', marginTop: '30px', width: '100px', height: '100px', backgroundColor: '#6441A4', float: 'left', position: 'relative', left: "-50%"}}>
+                            </div>
+                        </div>
                     </div>
-                    {this.state.showComponent ?
-                       <Extention/> :
-                       null
-                    }
                 </div>
             )
         }else{
@@ -107,10 +98,7 @@ export default class App extends React.Component{
 
     clickShowExtention() {
         this.setState({
-          showComponent: true,
+          showComponent: !this.showComponent,
         });
-        axios.get(location.protocol + configData.SERVER_URL + 'info').then (res => {
-            console.log(res)
-        })
     }
 }

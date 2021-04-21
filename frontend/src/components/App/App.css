@@ -10,27 +10,6 @@
     color:#e5e3e8;
 }
 
-.background {
-    background-image: url("../../img/background.png");
-    height: 100%;
-}
-
-.visible-disabled {
-    opacity: 0;
-
-}
-.visible-enabled {
-    animation-duration: 0.2s;
-    -webkit-animation-name: opacityTo100;
-          animation-name: opacityTo100;
-}
-
-.main_window {
-    width: 30%;
-    height: 90%;
-    margin-left: 5%;
-}
-
 @-webkit-keyframes opacityTo100 {
   0% {
     opacity: 0.2;
@@ -49,9 +28,10 @@
   }
 }
 
-.init {
-  display: block;
-  opacity: 0.2;
+.full_extention {
+    width: 100%;
+    height: 100%;
+    color: #FFFFFF;
 }
 
 .mini_button {

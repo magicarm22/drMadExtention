@@ -77,6 +77,7 @@ class UserInformation(APIView):
             'pz': str(user.pz),
             'py': str(user.py)
         }
+        print(userInformation)
         #     # health = self.getCurrentHealth(userId)
         #     # if health == 0.0 and not self.db.isHealthZero(ctx.author.name):
         #     #     self.db.addEnergy(ctx.author.name, -3)
