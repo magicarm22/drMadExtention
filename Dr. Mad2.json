@@ -39,8 +39,9 @@
       "id": "1",
       "isPopout": false,
       "label": "",
-      "linked": false,
-      "linkedUserId": "",
+      "linked": true,
+      "linkedUserId": "78977394",
+      "opaqueId": "",
       "orientation": "Portrait",
       "type": "video_overlay",
       "viewerType": "Logged-In Viewer"

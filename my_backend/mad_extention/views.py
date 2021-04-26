@@ -72,7 +72,7 @@ class UserInformation(APIView):
             'nickname': str(user.nickname),
             'countRaids': str(user.countraids),
             'countCerts': str(user.countcert),
-            'pills': str(user.pills),
+            'pills': str(int(user.pills)),
             'pa': str(user.pa),
             'pz': str(user.pz),
             'py': str(user.py)

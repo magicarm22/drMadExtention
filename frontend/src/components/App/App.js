@@ -107,10 +107,7 @@ export default class App extends React.Component{
 
     clickShowExtention() {
         this.setState({
-          showComponent: true,
+          showComponent: !this.showComponent,
         });
-        axios.get(location.protocol + configData.SERVER_URL + 'info').then (res => {
-            console.log(res)
-        })
     }
 }
