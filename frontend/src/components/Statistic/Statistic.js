@@ -22,34 +22,43 @@ export default class Statistic extends React.Component {
         }
     }
 
-    componentDidMount() {
+    getInformation(){
         axios.get(location.protocol + configData.SERVER_URL + 'info').then (res => {
-            this.setState({ user: res.data, isLoaded: true });
-        })
+            this.setState({ user: res.data, isLoaded: true })});
+    }
+
+    componentDidMount() {
+        this.getInformation()
+        this.interval = setInterval(() =>
+        this.getInformation(), 30000);
     }
 
     componentWillUnmount() {
+        clearInterval(this.interval);
     }
 
     render() {
         if (this.state.isLoaded) {
             return (
                 <div className="statistic">
-                    Имя: {this.state.user.nickname} <br />
-                    Количество рейдов: {this.state.user.countRaids} раз <br />
-                    Количество выписок: {this.state.user.countCerts} раз <br />
-                    Количество таблеток: {this.state.user.pills} шт. <br />
-                    Показатель атаки: {this.state.user.pa} <br />
-                    Показатель защиты: {this.state.user.pz} <br />
-                    Показатель удачи: {this.state.user.py} <br />
+                    Имя: {this.state.user.nickname} <br/>
+                    Количество рейдов: {this.state.user.countRaids} раз <br/>
+                    Количество выписок: {this.state.user.countCerts} раз <br/>
+                    Количество таблеток: {this.state.user.pills} шт. <br/>
+                    Показатель атаки: {this.state.user.pa} <br/>
+                    Показатель защиты: {this.state.user.pz} <br/>
+                    Показатель удачи: {this.state.user.py} <br/>
                 </div>
             )
         }
-        else {
-            return (<div className="statistic">
-                        Loading...
-                    </div>
+        else
+        {
+            return(
+                <div className="statistic">
+                    Loading...
+                </div>
             )
         }
+
     }
 }

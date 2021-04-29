@@ -156,7 +156,8 @@ class Trade(models.Model):
 
 
 class User(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.IntegerField(primary_key=True, editable=False)
     nickname = models.TextField(unique=True, blank=True, null=True)
     lastmessage = models.DateTimeField(db_column='lastMessage', blank=True, null=True)  # Field name made lowercase.
     lasttimein = models.DateTimeField(db_column='lastTimeIn', blank=True, null=True)  # Field name made lowercase.

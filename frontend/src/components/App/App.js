@@ -106,8 +106,8 @@ export default class App extends React.Component{
     }
 
     clickShowExtention() {
-        this.setState({
-          showComponent: !this.showComponent,
-        });
+        this.setState(prevState => ({
+          showComponent: !prevState.showComponent,
+        }));
     }
 }

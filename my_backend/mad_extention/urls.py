@@ -5,6 +5,7 @@ from . import views
 
 app_name = 'mad_extention'
 urlpatterns = [
-    path('info', views.UserInformation.as_view(), name='getUserInfomation'),
-    path('utils', views.Utils.as_view(), name='Utils'),
+    path('info', views.UserInformation.as_view(), name='getUserInformation'),
+    path('injection', views.StartInjection.as_view(), name='Injection'),
+    path('health', views.Health.as_view(), name='Health'),
 ]
