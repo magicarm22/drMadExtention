@@ -31,7 +31,7 @@ export default class Actions extends React.Component{
     {
         axios.post(location.protocol + configData.SERVER_URL + 'injection').then (res => {
             this.setState({ minutes: res.data.minutes})
-        }
+            }
         );
     }
 
@@ -39,8 +39,12 @@ export default class Actions extends React.Component{
     render(){
         return (
             <div className="Actions">
-                <button onClick={this.injection} className="injectionButton" />
-                Вы на уколах еще: {this.state.minutes}
+                <div className="InjectionAction">
+                    <button onClick={this.injection} className="injectionButton" >
+                        Уколы
+                    </button>
+                    <br />Вы на уколах еще: {this.state.minutes}
+                </div>
             </div>
         )
     }

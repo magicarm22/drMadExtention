@@ -8,4 +8,5 @@ urlpatterns = [
     path('info', views.UserInformation.as_view(), name='getUserInformation'),
     path('injection', views.StartInjection.as_view(), name='Injection'),
     path('health', views.Health.as_view(), name='Health'),
+    path('shop', views.ShopCenter.as_view(), name='Shop'),
 ]

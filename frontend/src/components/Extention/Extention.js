@@ -8,6 +8,7 @@ import axios from "axios";
 import configData from "../../configFile.json";
 import HeaderComponent from "../HeaderComponent/HeaderComponent";
 import Actions from "../Actions/Actions";
+import Shop from "../Shop/Shop";
 
 export default class App extends React.Component{
     constructor(props){
@@ -51,6 +52,9 @@ export default class App extends React.Component{
                             </TabPane>
                             <TabPane name="Рейды" key="4">
                                 Content of Tab Pane 3
+                            </TabPane>
+                            <TabPane name="Магазин" key="5">
+                                <Shop />
                             </TabPane>
                         </Tabs>
                     </div>

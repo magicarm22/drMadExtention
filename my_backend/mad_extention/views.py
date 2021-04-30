@@ -7,13 +7,9 @@ import jwt
 
 import requests
 from django.db.models import Q, F
-from django.http import Http404
-from django.shortcuts import render
-from rest_framework.decorators import api_view
-import logging, logging.config
-import sys
 
-from mad_extention.models import User, Injection, Streams
+from mad_extention.functions.Shop import getShop
+from mad_extention.models import User, Injection, Streams, Items
 
 # Create your views here.
 from rest_framework.response import Response
@@ -39,7 +35,7 @@ class UserInformation(APIView):
         try:
             user = User.objects.get(id=userId, nickname=name)
         except User.DoesNotExist:
-            user = User.objects.create(id=userId,nickname=name, lastmessage=datetime.datetime.now())
+            user = User.objects.create(id=userId, nickname=name, lastmessage=datetime.datetime.now())
             user.save()
             inj = Injection.objects.create(userid=user, beforelastinjectiontime=datetime.datetime.now())
             inj.save()
@@ -141,9 +137,9 @@ def getEndInjectionTime(userId):
 
 def stopInjection(userId, endTime):
     try:
-        Injection.objects.filter(userid=userId).update(beforeLastInjectionTime=endTime,
-                                                         lastInjectionTime=None,
-                                                         endInjectionTime=None)
+        Injection.objects.filter(userid=userId).update(beforelastinjectiontime=endTime,
+                                                       lastinjectiontime=None,
+                                                       endinjectiontime=None)
     except User.DoesNotExist:
         print("ERROR! Can't stop Injection")
 
@@ -191,17 +187,20 @@ def getHealthInTime(startTime, time):
 
 def getCurrentHealth(userId):
     currentTime = datetime.datetime.now().replace(tzinfo=None)
-    lastInjectionTime = getInjectionTime(userId).replace(tzinfo=None)
+    lastInjectionTime = getInjectionTime(userId)
     beforeLastInjectionTime = getBeforeLastInjectionTime(userId).replace(tzinfo=None)
-    endInjectionTime = getEndInjectionTime(userId).replace(tzinfo=None)
+    endInjectionTime = getEndInjectionTime(userId)
     if lastInjectionTime is None:  # Впервые пришел
-        return getHealthInTime(beforeLastInjectionTime, currentTime)
-    if endInjectionTime is not None and endInjectionTime < currentTime:  # Укол закончен
-        stopInjection(userId, endInjectionTime)
-        return getHealthInTime(endInjectionTime, currentTime)
-    hpInInjection = getHealthInTime(beforeLastInjectionTime, lastInjectionTime)
-    return hpInInjection + (currentTime - lastInjectionTime).total_seconds() / (  # Во время укола
-        (endInjectionTime - lastInjectionTime).total_seconds()) * (100 - hpInInjection)
+        return getHealthInTime(beforeLastInjectionTime.replace(tzinfo=None), currentTime)
+    if endInjectionTime is not None and endInjectionTime.replace(tzinfo=None) < currentTime.replace(
+            tzinfo=None):  # Укол закончен
+        stopInjection(userId, endInjectionTime.replace(tzinfo=None))
+        return getHealthInTime(endInjectionTime.replace(tzinfo=None), currentTime)
+    hpInInjection = getHealthInTime(beforeLastInjectionTime.replace(tzinfo=None),
+                                    lastInjectionTime.replace(tzinfo=None))
+    return hpInInjection + (currentTime - lastInjectionTime.replace(tzinfo=None)).total_seconds() / (  # Во время укола
+        (endInjectionTime.replace(tzinfo=None) - lastInjectionTime.replace(tzinfo=None)).total_seconds()) * (
+                       100 - hpInInjection)
 
 
 def setZeroHealth(userId, status):
@@ -223,6 +222,7 @@ class Health(APIView):
         health = getCurrentHealth(userId)
         return Response({'health': math.ceil(health)})
 
+
 class StartInjection(APIView):
 
     @staticmethod
@@ -230,7 +230,7 @@ class StartInjection(APIView):
         try:
             inj = Injection.objects.filter(userid=userID).update(lastinjectiontime=time)
             status = True
-        except User.DoesNotExist:
+        except Injection.DoesNotExist:
             print("ERROR! Inj didn't find")
             status = False
         return status
@@ -240,7 +240,7 @@ class StartInjection(APIView):
         try:
             inj = Injection.objects.filter(userid=userID).update(endinjectiontime=time)
             status = True
-        except User.DoesNotExist:
+        except Injection.DoesNotExist:
             print("ERROR! Inj didn't find")
             status = False
         return status
@@ -249,7 +249,7 @@ class StartInjection(APIView):
         try:
             inj = Injection.objects.filter(userid=userId).update(counttimes=F('counttimes') + 1)
             status = True
-        except User.DoesNotExist:
+        except Injection.DoesNotExist:
             print("ERROR! Inj didn't find")
             status = False
         return status
@@ -282,3 +282,32 @@ class StartInjection(APIView):
         userId = payload['user_id']
         inj = self.getInjection(userId)
         return Response(inj)
+
+
+class ShopCenter(APIView):
+
+    def get(self, request):
+        shop = getShop()
+        items = self.getItems(shop[1:6])
+        # resultStr = self.formatShopStr(shop[1:6], prices)
+        res = {'items': []}
+        for item in items:
+            res['items'].append({
+                'itemName': item.itemname,
+                'mainCategory': item.category.maincategoryname,
+                'subCategory': item.category.subcategoryname,
+                'pa': item.pa,
+                'pz': item.pz,
+                'py': item.py,
+                'cost': item.cost,
+                'fragility': item.fragility
+            })
+
+        return Response(res)
+
+    def getItems(self, items):
+        itemsInfo = []
+        for item in items:
+            itemInfo = Items.objects.filter(id=item).select_related('category').first()
+            itemsInfo.append(itemInfo)
+        return itemsInfo
