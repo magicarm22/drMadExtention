@@ -20,6 +20,12 @@
       "isEphemeral": false,
       "isOrigin": true,
       "value": "https://localhost:8000"
+    },
+    {
+      "isAllowed": true,
+      "isEphemeral": false,
+      "isOrigin": true,
+      "value": "wss://pubsub-edge.twitch.tv"
     }
   ],
   "extensionViews": [
@@ -41,7 +47,50 @@
       "label": "",
       "linked": true,
       "linkedUserId": "78977394",
-      "opaqueId": "",
+      "orientation": "Portrait",
+      "type": "video_overlay",
+      "viewerType": "Logged-In Viewer"
+    },
+    {
+      "channelId": "29057818",
+      "configurationAnchor": "video_overlay",
+      "displayChannelName": "drmad0",
+      "features": {
+        "isBitsEnabled": false,
+        "isChatEnabled": false,
+        "isSubscriptionStatusAvailable": false
+      },
+      "frameSize": {
+        "width": 1280,
+        "height": 720
+      },
+      "id": "2",
+      "isPopout": false,
+      "label": "",
+      "linked": true,
+      "linkedUserId": "29057818",
+      "orientation": "Portrait",
+      "type": "video_overlay",
+      "viewerType": "Logged-In Viewer"
+    },
+    {
+      "channelId": "29057818",
+      "configurationAnchor": "video_overlay",
+      "displayChannelName": "drmad0",
+      "features": {
+        "isBitsEnabled": false,
+        "isChatEnabled": false,
+        "isSubscriptionStatusAvailable": false
+      },
+      "frameSize": {
+        "width": 1280,
+        "height": 720
+      },
+      "id": "3",
+      "isPopout": false,
+      "label": "",
+      "linked": true,
+      "linkedUserId": "29057818",
       "orientation": "Portrait",
       "type": "video_overlay",
       "viewerType": "Logged-In Viewer"
@@ -62,7 +111,7 @@
     "iconUrls": {},
     "id": "p7jpvrdyccnaf1k7cyd1w8y9jtm0y1",
     "installationCount": -42,
-    "liveConfigUrl": "",
+    "liveConfigUrl": "https://localhost:8080/video_overlay.html",
     "name": "Dr. Mad2",
     "panelHeight": 0,
     "privacyPolicyUrl": "",
@@ -88,6 +137,10 @@
       },
       "config": {
         "viewerUrl": "https://localhost:8080/config.html",
+        "canLinkExternalContent": false
+      },
+      "liveConfig": {
+        "viewerUrl": "https://localhost:8080/video_overlay.html",
         "canLinkExternalContent": false
       }
     },

@@ -1,6 +1,7 @@
 import datetime
 import random
 
+from django.db.models import Q
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
@@ -56,8 +57,37 @@ def getShop():
     try:
         shop = Shop.objects.values_list('lastchanges', 'currentitem1', 'currentitem2',
                                         'currentitem3', 'currentitem4', 'currentitem5').first()
-        if len(shop) == 0:
+        if shop is None:
             shop = createShop()
     except Shop.DoesNotExist:
         shop = createShop()
     return shop
+
+
+def setItemSelled(itemId):
+    try:
+        shop = Shop.objects.values_list('currentitem1', 'currentitem2',
+                                        'currentitem3', 'currentitem4', 'currentitem5')
+        print(shop)
+        for i in range(1, len(shop[0]) + 1):
+            print(shop[0][i - 1], itemId)
+            if shop[0][i - 1] == itemId:
+                kwargs = {
+                    f"currentitem{i}": None
+                }
+                break
+        Shop.objects.update(**kwargs)
+    except Exception as e:
+        print(f"Item didn't find: {e}")
+        pass
+
+
+def isItemSelling(itemId):
+    try:
+        shop = Shop.objects.filter(Q(currentitem1=itemId) | Q(currentitem2=itemId) | Q(currentitem3=itemId) |
+                                   Q(currentitem4=itemId) | Q(currentitem5=itemId))
+        if shop is not None:
+            return True
+        return False
+    except:
+        return False

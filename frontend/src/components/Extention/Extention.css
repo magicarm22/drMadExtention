@@ -42,9 +42,15 @@
   opacity: 0.2;
 }
 
-.container {
-  width: 90%;
-  margin: 7% auto;
+.button_grid {
+    width: 90%;
+    height: 40%;
+    margin: 7% auto;
+}
+
+.action_button {
+    width: 55px;
+    height: 55px;
 }
 
 .tab-header {
@@ -63,6 +69,9 @@
   cursor: pointer;
 }
 
+.extention {
+    height: 100%;
+}
 
 .tab-header li.active,
 .tab-header li:hover {

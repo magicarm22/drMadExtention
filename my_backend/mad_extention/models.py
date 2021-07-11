@@ -52,7 +52,8 @@ class Inventory(models.Model):
     userid = models.ForeignKey('User', models.DO_NOTHING, db_column='userId')  # Field name made lowercase.
     itemid = models.ForeignKey('Items', models.DO_NOTHING, db_column='itemId')  # Field name made lowercase.
     count = models.IntegerField()
-    inuse = models.BooleanField(db_column='inUse')  # Field name made lowercase.
+    inuse = models.BooleanField(db_column='inUse', default=False)  # Field name made lowercase.
+    position = models.IntegerField(default=0)
     currentfragility = models.IntegerField(db_column='currentFragility', blank=True, null=True)  # Field name made lowercase.
 
     class Meta:

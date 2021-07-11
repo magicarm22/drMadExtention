@@ -1,26 +1,26 @@
 import base64
-import datetime
-import json
 import math
 
 import jwt
-
-import requests
-from django.db.models import Q, F
-
-from mad_extention.functions.Shop import getShop
-from mad_extention.models import User, Injection, Streams, Items
-
+from rest_framework import status
 # Create your views here.
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from functions.Injection import getCurrentHealth, getInjection, getEndInjectionTimeInMinutes
+from functions.Raids import getListOfRaids, isUserInRaidParty, getRaidInformationByPartyId, isRaidStarted, joinRaidParty
+from functions.User import getUser, getUsernameById, calculateUserStats
 from mad_extention.conf import settings
+from mad_extention.functions.Pills import getPills, setPills
+from mad_extention.functions.Shop import getShop, setItemSelled, isItemSelling
+from .functions.Inventory import giveItemToUser, getInventory, useItem, isItemOnPosition, unUseItem
+from .functions.Items import getItemPrice, getItems
 
 
 def verifyAndDecode(token):
     try:
         my_secret = base64.b64decode(settings.DRMAD_SECRET)
+        print(settings.DRMAD_SECRET, my_secret, token)
         return jwt.decode(token, my_secret, algorithms=['HS256'])
     except Exception as e:
         print(e)
@@ -29,35 +29,11 @@ def verifyAndDecode(token):
 
 class UserInformation(APIView):
 
-    def getUser(self, userId, name):
-        if name is None:
-            return None
-        try:
-            user = User.objects.get(id=userId, nickname=name)
-        except User.DoesNotExist:
-            user = User.objects.create(id=userId, nickname=name, lastmessage=datetime.datetime.now())
-            user.save()
-            inj = Injection.objects.create(userid=user, beforelastinjectiontime=datetime.datetime.now())
-            inj.save()
-        return user
-
-    def getUsernameById(self, userId, token):
-        headers = {
-            'Authorization': token,
-            "Client-Id": settings.DRMAD_CLIENT_ID
-        }
-        params = {
-            "id": str(userId)
-        }
-        response = requests.get('https://api.twitch.tv/helix/users', params=params, headers=headers)
-        content = json.loads(response.content)
-        print(content)
-        return content['data'][0]['login']
-
     def get(self, request, format=None):
         import logging
         # print(request.META.get('HTTP_AUTHORIZATION', ''))
         token = request.META.get('HTTP_AUTHORIZATION', '')[len("Bearer "):]
+        print("TOKEN:", token)
         payload = verifyAndDecode(token)
         print(payload)
         logger = logging.getLogger("mylogger")
@@ -66,8 +42,8 @@ class UserInformation(APIView):
         print(userId)
         token = self.getAuthToken()
         # logger.info(request)
-        username = self.getUsernameById(userId, token)
-        user = self.getUser(userId, username)
+        username = getUsernameById(userId, token)
+        user = getUser(userId, username)
         print(user.nickname)
         userInformation = {
             'nickname': str(user.nickname),
@@ -108,111 +84,6 @@ class UserInformation(APIView):
         return "Bearer " + str(settings.DRMAD_OAUTH_TOKEN)
 
 
-def getInjectionTime(userId):
-    try:
-        inj = Injection.objects.get(userid=userId)
-    except Injection.DoesNotExist:
-        print("ERROR! User didn't find")
-        inj = None
-    return inj.lastinjectiontime
-
-
-def getBeforeLastInjectionTime(userId):
-    try:
-        inj = Injection.objects.get(userid=userId)
-    except Injection.DoesNotExist:
-        print("ERROR! User didn't find")
-        inj = None
-    return inj.beforelastinjectiontime
-
-
-def getEndInjectionTime(userId):
-    try:
-        inj = Injection.objects.get(userid=userId)
-    except Injection.DoesNotExist:
-        print("ERROR! User didn't find")
-        inj = None
-    return inj.endinjectiontime
-
-
-def stopInjection(userId, endTime):
-    try:
-        Injection.objects.filter(userid=userId).update(beforelastinjectiontime=endTime,
-                                                       lastinjectiontime=None,
-                                                       endinjectiontime=None)
-    except User.DoesNotExist:
-        print("ERROR! Can't stop Injection")
-
-
-def getStreamTimeFrom(fromTime):
-    print(fromTime)
-    try:
-        streams = Streams.objects.filter(Q(endedat__gt=fromTime) | Q(endedat=None)).order_by('startedat')
-    except User.DoesNotExist:
-        print("ERROR! User didn't find")
-        streams = None
-    return streams
-
-
-def getStreamTime(fromTime, toTime):
-    streams = getStreamTimeFrom(fromTime)
-    print(streams.first().__dict__)
-    if fromTime.replace(tzinfo=None) < streams.first().startedat.replace(tzinfo=None):
-        startTime = streams.first().endedat
-    else:
-        startTime = fromTime
-    if streams.first().endedat is None:
-        times = toTime.replace(tzinfo=None) - startTime.replace(tzinfo=None)
-    else:
-        times = streams.first().endedat.replace(tzinfo=None) - startTime.replace(tzinfo=None)
-        # print(times)
-        for stream in streams[1:]:
-            if stream.endedat is None:
-                times += toTime.replace(tzinfo=None) - stream.startedat.replace(tzinfo=None)
-            else:
-                times += stream.endedat.replace(tzinfo=None) - stream.startedat.replace(tzinfo=None)
-    print(times)
-    return times
-
-
-def getHealthInTime(startTime, time):
-    injectionTime = startTime
-    times = getStreamTime(injectionTime, time)
-    health = (1 - (times.total_seconds() / (60.0 * 60.0)) / 6) * 100
-    if health < 0.0:
-        health = 0.0
-    # print(health)
-    return health
-
-
-def getCurrentHealth(userId):
-    currentTime = datetime.datetime.now().replace(tzinfo=None)
-    lastInjectionTime = getInjectionTime(userId)
-    beforeLastInjectionTime = getBeforeLastInjectionTime(userId).replace(tzinfo=None)
-    endInjectionTime = getEndInjectionTime(userId)
-    if lastInjectionTime is None:  # Впервые пришел
-        return getHealthInTime(beforeLastInjectionTime.replace(tzinfo=None), currentTime)
-    if endInjectionTime is not None and endInjectionTime.replace(tzinfo=None) < currentTime.replace(
-            tzinfo=None):  # Укол закончен
-        stopInjection(userId, endInjectionTime.replace(tzinfo=None))
-        return getHealthInTime(endInjectionTime.replace(tzinfo=None), currentTime)
-    hpInInjection = getHealthInTime(beforeLastInjectionTime.replace(tzinfo=None),
-                                    lastInjectionTime.replace(tzinfo=None))
-    return hpInInjection + (currentTime - lastInjectionTime.replace(tzinfo=None)).total_seconds() / (  # Во время укола
-        (endInjectionTime.replace(tzinfo=None) - lastInjectionTime.replace(tzinfo=None)).total_seconds()) * (
-                       100 - hpInInjection)
-
-
-def setZeroHealth(userId, status):
-    try:
-        user = User.objects.get(id=userId).update(ishealthzero=status)
-        result = True
-    except User.DoesNotExist:
-        print("ERROR! User didn't find")
-        result = False
-    return result
-
-
 class Health(APIView):
 
     def get(self, request):
@@ -225,74 +96,57 @@ class Health(APIView):
 
 class StartInjection(APIView):
 
-    @staticmethod
-    def setInjectionTime(userID, time):
-        try:
-            inj = Injection.objects.filter(userid=userID).update(lastinjectiontime=time)
-            status = True
-        except Injection.DoesNotExist:
-            print("ERROR! Inj didn't find")
-            status = False
-        return status
+    def post(self, request):
+        token = request.META.get('HTTP_AUTHORIZATION', '')[len("Bearer "):]
+        payload = verifyAndDecode(token)
+        userId = payload['user_id']
+        inj = getInjection(userId)
+        return Response(inj)
 
-    @staticmethod
-    def setEndInjectionTime(userID, time):
-        try:
-            inj = Injection.objects.filter(userid=userID).update(endinjectiontime=time)
-            status = True
-        except Injection.DoesNotExist:
-            print("ERROR! Inj didn't find")
-            status = False
-        return status
+    def get(self, request):
+        token = request.META.get('HTTP_AUTHORIZATION', '')[len("Bearer "):]
+        payload = verifyAndDecode(token)
+        userId = payload['user_id']
+        minutes = getEndInjectionTimeInMinutes(userId)
+        return Response({"errorCode": 0, 'minutes': minutes})
 
-    def increaseInjectionCount(self, userId):
-        try:
-            inj = Injection.objects.filter(userid=userId).update(counttimes=F('counttimes') + 1)
-            status = True
-        except Injection.DoesNotExist:
-            print("ERROR! Inj didn't find")
-            status = False
-        return status
 
-    def useInjection(self, userId, endTime):
-        self.setInjectionTime(userId, datetime.datetime.now())
-        self.setEndInjectionTime(userId, endTime)
-        self.increaseInjectionCount(userId)
-
-    def getInjection(self, userId):
-        try:
-            health = getCurrentHealth(userId)
-            if getEndInjectionTime(userId):
-                minutes = int((100 - health) / 4.0) + 1
-                return {"status": True, "minutes": minutes}
-            if health < 50:
-                minutes = int((100 - health) / 4.0) + 1
-                self.useInjection(userId, datetime.datetime.now() + datetime.timedelta(minutes=minutes))
-                setZeroHealth(userId, False)
-                return {"status": True, "minutes": minutes}
-            else:
-                return {"status": False, "minutes": 0}
-        except Exception as e:
-            print(e)
-            return {"status": False, "minutes": -1}
+class ShopCenter(APIView):
 
     def post(self, request):
         token = request.META.get('HTTP_AUTHORIZATION', '')[len("Bearer "):]
         payload = verifyAndDecode(token)
         userId = payload['user_id']
-        inj = self.getInjection(userId)
-        return Response(inj)
-
-
-class ShopCenter(APIView):
+        itemId = int(request.data['itemId'])
+        if itemId == "":
+            return Response({"errorCode": 1, "description": "itemId is None or empty"},
+                            status=status.HTTP_404_NOT_FOUND)
+        if not isItemSelling(itemId):
+            return Response({"errorCode": 2, "description": "This item isn't selling now"},
+                            status=status.HTTP_404_NOT_FOUND)
+        price = getItemPrice(itemId)
+        print(price)
+        pills = getPills(userId)
+        if pills - price < 0:
+            return Response({"errorCode": 3, "description": "You don't have enought money"},
+                            status=status.HTTP_404_NOT_FOUND)
+        setItemSelled(itemId)
+        setPills(userId, pills - price)
+        giveItemToUser(userId, itemId, 1)
+        return Response({"errorCode": 0, "description": "Success"})
 
     def get(self, request):
+        token = request.META.get('HTTP_AUTHORIZATION', '')[len("Bearer "):]
+        verifyAndDecode(token)
         shop = getShop()
-        items = self.getItems(shop[1:6])
+        items = getItems(shop[1:6])
         # resultStr = self.formatShopStr(shop[1:6], prices)
         res = {'items': []}
         for item in items:
+            if item is None:
+                continue
             res['items'].append({
+                'itemId': item.id,
                 'itemName': item.itemname,
                 'mainCategory': item.category.maincategoryname,
                 'subCategory': item.category.subcategoryname,
@@ -305,9 +159,86 @@ class ShopCenter(APIView):
 
         return Response(res)
 
-    def getItems(self, items):
-        itemsInfo = []
-        for item in items:
-            itemInfo = Items.objects.filter(id=item).select_related('category').first()
-            itemsInfo.append(itemInfo)
-        return itemsInfo
+
+class MyInventory(APIView):
+
+    def get(self, request):
+        token = request.META.get('HTTP_AUTHORIZATION', '')[len("Bearer "):]
+        payload = verifyAndDecode(token)
+        userId = payload['user_id']
+        inventory = getInventory(userId)
+        items = []
+        for item in inventory:
+            itemJson = {
+                'id': item.id,
+                'itemId': item.itemid.id,
+                'itemName': item.itemid.itemname,
+                'count': item.count,
+                'fragility': item.currentfragility,
+                'mainCategoryName': item.itemid.category.maincategoryname,
+                'subCategoryName': item.itemid.category.subcategoryname,
+            }
+            items.append(itemJson)
+        return Response(items)
+
+    def post(self, request):
+        token = request.META.get('HTTP_AUTHORIZATION', '')[len("Bearer "):]
+        payload = verifyAndDecode(token)
+        userId = payload['user_id']
+        id = request.data['id']
+        position = request.data['position']
+        if isItemOnPosition(userId, position):
+            unUseItem(userId, position)
+        useItem(id, position)
+        return Response({"errorCode": 0, "description": "Success"})
+
+
+class RaidsInfo(APIView):
+
+    def get(self, request):
+        token = request.META.get('HTTP_AUTHORIZATION', '')[len("Bearer "):]
+        payload = verifyAndDecode(token)
+        listOfRaids = getListOfRaids()
+        result = []
+        for raid in listOfRaids:
+            print(raid.player1.nickname)
+            raidInfo = {
+                'raidid': raid.id,
+                'countPlayer': raid.countplayer,
+                'player1': None if raid.player1 is None else raid.player1.nickname,
+                'player2': None if raid.player2 is None else raid.player2.nickname,
+                'player3': None if raid.player3 is None else raid.player3.nickname,
+                'player4': None if raid.player4 is None else raid.player4.nickname,
+                'location': raid.raidid.locationname,
+                'isRaidStarted': raid.israidstarted,
+            }
+            result.append(raidInfo)
+        return Response(result)
+
+    def post(self, request):
+        token = request.META.get('HTTP_AUTHORIZATION', '')[len("Bearer "):]
+        payload = verifyAndDecode(token)
+        userId = payload['user_id']
+        partyId = request.data['partyid']
+        if userId == '':
+            return Response({"errorCode": 1, "description": "userId is Empty"})
+        if isUserInRaidParty(userId):
+            return Response({"errorCode": 2, "description": "You are already in party"})
+        if isRaidStarted(partyId):
+            return Response({"errorCode": 3, "description": "Raid has already started"})
+        raidInfo = getRaidInformationByPartyId(partyId)
+        print(raidInfo)
+
+        pz, pa, py = calculateUserStats(userId)
+        print(pz, pa, py)
+        if pa < raidInfo.raidid.pa:
+            return Response({"errorCode": 4, "description": "You don't have enough power"})
+        # if self.db.getCountCert(userId) != self.db.getTierCert(raidId):
+        #     await ctx.send(f"/me {ctx.author.name}, эта локация для вас недоступна")
+        #     return
+        if getCurrentHealth(userId) < 25:
+            return Response({"errorCode": 5, "description": "You have very low health"})
+        if raidInfo.countplayer >= 4:
+            return Response({"errorCode": 6, "description": "You can't enter to that group, it's full"})
+        joinRaidParty(partyId, userId)
+        return Response({"errorCode": 0, "description": "Success"})

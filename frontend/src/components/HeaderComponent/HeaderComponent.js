@@ -26,7 +26,7 @@ export default class HeaderComponent extends React.Component{
     componentDidMount(){
         this.getHealth()
         this.interval = setInterval(() =>
-        this.getHealth(), 30000);
+        this.getHealth(), 5000);
     }
 
 
